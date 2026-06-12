@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="uz" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SHASHKA | Professional Strategik O'yin</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Bricolage Grotesque', 'sans-serif'],
+                    },
+                    colors: {
+                        vercel: {
+                            dark: '#000000',
+                            darker: '#111111',
+                            light: '#ffffff',
+                            gray: '#888888',
+                            accent: '#0070f3',
+                            accentHover: '#3291ff',
+                            purple: '#f81ce5',
+                            cyan: '#79ffe1',
+                            success: '#12a594',
+                            error: '#e00',
+                            neon: '#00ffcc'
+                        }
+                    },
+                    boxShadow: {
+                        'neon': '0 0 10px rgba(0, 255, 204, 0.5), 0 0 20px rgba(0, 255, 204, 0.3)',
+                        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --cell-size: clamp(30px, 10vw, 60px);
+            --board-size: calc(var(--cell-size) * 8);
+        }
+
+        body {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(17, 17, 17, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(30,30,30,0.8) 0%, rgba(10,10,10,0.9) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .light body {
+            background-color: #f0f0f0;
+            color: #111;
+        }
+        .light .glass {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .light .glass-panel {
+            background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(240,240,240,0.95) 100%);
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            color: #000;
+        }
+
+        /* Buttons */
+        .btn-premium {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            transform: translateZ(0);
+        }
+        .btn-premium::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: all 0.5s ease;
+        }
+        .btn-premium:hover::before {
+            left: 100%;
+        }
+        .btn-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        /* Board & Pieces */
+        #board-container {
+            width: var(--board-size);
+            height: var(--board-size);
+            perspective: 1000px;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .cell {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        .cell-dark { background-color: #2a2a2a; }
+        .cell-light { background-color: #e5e5e5; }
+        
+        /* Board Themes */
+        .theme-classic .cell-dark { background-color: #8b5a2b; }
+        .theme-classic .cell-light { background-color: #ffdead; }
+        .theme-neon .cell-dark { background-color: #0a0a1a; box-shadow: inset 0 0 10px rgba(0,255,204,0.1); }
+        .theme-neon .cell-light { background-color: #1a1a2e; }
+
+        .piece {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .piece::after {
+            content: '';
+            position: absolute;
+            width: 80%; height: 80%;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .piece-white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd, #999);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 -4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .piece-black {
+            background: radial-gradient(circle at 30% 30%, #555, #222, #000);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 -4px 8px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .piece.king .crown {
+            display: block;
+            color: #ffd700;
+            font-size: clamp(12px, 3vw, 20px);
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+            z-index: 20;
+        }
+        .crown { display: none; }
+
+        .piece.selected {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5), 0 0 15px var(--vercel-neon);
+            border: 2px solid var(--vercel-neon);
+            z-index: 20;
+        }
+
+        /* Highlights */
+        .highlight-move {
+            position: absolute;
+            width: 30%; height: 30%;
+            border-radius: 50%;
+            background-color: rgba(0, 255, 204, 0.5);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.8);
+            cursor: pointer;
+            z-index: 5;
+            animation: pulse 1.5s infinite;
+        }
+
+        .highlight-capture {
+            background-color: rgba(255, 50, 50, 0.6);
+            box-shadow: 0 0 10px rgba(255, 50, 50, 0.8);
+        }
+        
+        .last-move {
+            position: absolute;
+            width: 100%; height: 100%;
+            background-color: rgba(255, 255, 0, 0.2);
+            pointer-events: none;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes captureFade {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; filter: brightness(2); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .screen {
+            display: none;
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .screen.active {
+            display: flex;
+        }
+        
+        .captured-anim {
+            animation: captureFade 0.4s ease-out forwards;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
+
+        /* Loader */
+        .thinking-loader {
+            display: flex; gap: 5px;
+        }
+        .thinking-loader span {
+            width: 8px; height: 8px;
+            background-color: #00ffcc;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .thinking-loader span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-loader span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); box-shadow: 0 0 10px #00ffcc; }
+        }
+
+        /* Particle Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+        }
+        .light #bg-canvas {
+            background: radial-gradient(circle at center, #fff 0%, #eee 100%);
+        }
+        
+        /* Toast */
+        #toast-container {
+            position: fixed; top: 20px; right: 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: rgba(17,17,17,0.9);
+            border-left: 4px solid var(--vercel-neon);
+            color: white; padding: 15px 20px; border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease forwards;
+            display: flex; align-items: center; gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Toasts -->
+    <div id="toast-container"></div>
+
+    <!-- Main App Container -->
+    <div id="app" class="relative w-full h-full min-h-screen flex items-center justify-center p-4">
+
+        <!-- ================= MAIN MENU ================= -->
+        <div id="screen-menu" class="screen active flex-col items-center justify-center w-full max-w-md gap-6 z-10">
+            <div class="text-center mb-8 relative">
+                <div class="absolute -inset-4 bg-gradient-to-r from-cyan-500 to-blue-500 opacity-20 blur-2xl rounded-full"></div>
+                <h1 class="text-5xl md:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 drop-shadow-lg flex items-center justify-center gap-4 relative z-10">
+                    <i class="fa-solid fa-chess-board text-gray-200"></i> SHASHKA
+                </h1>
+                <p class="text-gray-400 mt-2 text-sm md:text-base tracking-widest uppercase relative z-10 font-semibold">Professional Strategik O'yin</p>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl w-full flex flex-col gap-3 shadow-2xl">
+                <button onclick="UI.showScreen('screen-game'); Game.startLocal()" class="btn-premium group relative w-full flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10">
+                    <span class="text-lg font-medium"><i class="fa-solid fa-play mr-3 text-green-400"></i> O'yinni boshlash</span>
+                    <i class="fa-solid fa-chevron-right text-white/30 group-hover:text-white/80 transition-colors"></i>
+                </button>
+                
+                <button onclick="UI.showScreen('screen-ai-setup')" class="btn-premium group relative w-full flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10">
+                    <span class="text-lg font-medium"><i class="fa-solid fa-robot mr-3 text-blue-400"></i> Kompyuterga qarshi</span>
+                    <i class="fa-solid fa-chevron-right text-white/30 group-hover:text-white/80 transition-colors"></i>
+                </button>
+
+                <button onclick="UI.showScreen('screen-online-setup')" class="btn-premium group relative w-full flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10">
+                    <span class="text-lg font-medium"><i class="fa-solid fa-globe mr-3 text-purple-400"></i> Onlayn o'yin</span>
+                    <span class="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">BETA</span>
+                </button>
+
+                <div class="grid grid-cols-2 gap-3 mt-2">
+                    <button onclick="UI.showScreen('screen-stats'); UI.renderStats()" class="btn-premium flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10">
+                        <i class="fa-solid fa-chart-simple text-yellow-400"></i> Statistika
+                    </button>
+                    <button onclick="UI.showScreen('screen-achievements'); UI.renderAchievements()" class="btn-premium flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10">
+                        <i class="fa-solid fa-trophy text-orange-400"></i> Yutuqlar
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="UI.showScreen('screen-settings'); UI.loadSettings()" class="btn-premium flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10">
+                        <i class="fa-solid fa-gear text-gray-300"></i> Sozlamalar
+                    </button>
+                    <button onclick="UI.showScreen('screen-about')" class="btn-premium flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10">
+                        <i class="fa-solid fa-circle-info text-cyan-400"></i> Muallif
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= AI SETUP ================= -->
+        <div id="screen-ai-setup" class="screen flex-col items-center justify-center w-full max-w-md gap-6 z-10">
+            <div class="glass-panel p-8 rounded-2xl w-full shadow-2xl relative">
+                <button onclick="UI.showScreen('screen-menu')" class="absolute top-4 left-4 text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                
+                <h2 class="text-3xl font-bold text-center mb-8 mt-2"><i class="fa-solid fa-robot mr-2"></i> Qiyinchilik</h2>
+                
+                <div class="flex flex-col gap-4">
+                    <button onclick="Game.startAI(1)" class="btn-premium flex items-center justify-between p-4 bg-green-500/10 border border-green-500/30 rounded-xl hover:bg-green-500/20">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400"><i class="fa-solid fa-leaf"></i></div>
+                            <div class="text-left">
+                                <h3 class="font-bold text-lg">Oson</h3>
+                                <p class="text-xs text-gray-400">Tasodifiy yurishlar</p>
+                            </div>
+                        </div>
+                    </button>
+                    <button onclick="Game.startAI(3)" class="btn-premium flex items-center justify-between p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl hover:bg-blue-500/20">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400"><i class="fa-solid fa-brain"></i></div>
+                            <div class="text-left">
+                                <h3 class="font-bold text-lg">O'rta</h3>
+                                <p class="text-xs text-gray-400">Oddiy strategiya</p>
+                            </div>
+                        </div>
+                    </button>
+                    <button onclick="Game.startAI(5)" class="btn-premium flex items-center justify-between p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl hover:bg-orange-500/20">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"><i class="fa-solid fa-chess-knight"></i></div>
+                            <div class="text-left">
+                                <h3 class="font-bold text-lg">Murakkab</h3>
+                                <p class="text-xs text-gray-400">Minimax algoritmi</p>
+                            </div>
+                        </div>
+                    </button>
+                    <button onclick="Game.startAI(7)" class="btn-premium flex items-center justify-between p-4 bg-red-500/10 border border-red-500/30 rounded-xl hover:bg-red-500/20 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-red-600/20 to-purple-600/20 animate-pulse"></div>
+                        <div class="flex items-center gap-4 relative z-10">
+                            <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-400"><i class="fa-solid fa-fire"></i></div>
+                            <div class="text-left">
+                                <h3 class="font-bold text-lg text-red-200">Ekspert</h3>
+                                <p class="text-xs text-gray-400">Chuqur analiz, kuchli o'yin</p>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ONLINE SETUP ================= -->
+        <div id="screen-online-setup" class="screen flex-col items-center justify-center w-full max-w-md gap-6 z-10">
+            <div class="glass-panel p-8 rounded-2xl w-full shadow-2xl relative">
+                <button onclick="UI.showScreen('screen-menu')" class="absolute top-4 left-4 text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                
+                <h2 class="text-3xl font-bold text-center mb-8 mt-2"><i class="fa-solid fa-globe mr-2"></i> Onlayn O'yin</h2>
+                
+                <div class="flex flex-col gap-6" id="online-auth-section">
+                    <p class="text-center text-gray-400 text-sm">Firebase orqali real vaqtda do'stlaringiz bilan o'ynang.</p>
+                    
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/10">
+                        <label class="text-sm text-gray-400 mb-2 block">Ismingiz</label>
+                        <input type="text" id="player-name" placeholder="Ism kiriting..." class="w-full bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-cyan-500 transition-colors">
+                    </div>
+
+                    <button onclick="Online.createRoom()" class="btn-premium w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-bold text-lg shadow-lg hover:shadow-cyan-500/50">
+                        <i class="fa-solid fa-plus mr-2"></i> Xona yaratish
+                    </button>
+                    
+                    <div class="relative flex items-center py-2">
+                        <div class="flex-grow border-t border-white/10"></div>
+                        <span class="flex-shrink-0 mx-4 text-gray-500 text-sm">YOKI</span>
+                        <div class="flex-grow border-t border-white/10"></div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <input type="text" id="room-id-input" placeholder="Xona ID (Room ID)" class="flex-1 bg-black/50 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors font-mono text-center">
+                        <button onclick="Online.joinRoom()" class="btn-premium px-6 bg-purple-600 rounded-xl font-bold hover:bg-purple-500">
+                            Ulanish
+                        </button>
+                    </div>
+                </div>
+
+                <div id="online-waiting-section" class="hidden flex-col items-center justify-center gap-6 py-8">
+                    <div class="thinking-loader scale-150 mb-4"><span></span><span></span><span></span></div>
+                    <h3 class="text-xl font-bold">Raqib kutilmoqda...</h3>
+                    <div class="bg-black/50 px-6 py-3 rounded-lg border border-white/10 font-mono text-2xl tracking-wider text-cyan-400" id="display-room-id">
+                        ----
+                    </div>
+                    <button onclick="Online.copyInviteLink()" class="btn-premium px-4 py-2 bg-white/10 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fa-regular fa-copy"></i> Havolani nusxalash
+                    </button>
+                    <button onclick="Online.cancelMatchmaking()" class="text-red-400 text-sm mt-4 hover:text-red-300">Bekor qilish</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MAIN GAME UI ================= -->
+        <div id="screen-game" class="screen flex-col items-center justify-center w-full max-w-6xl gap-6 z-10 h-full py-4">
+            
+            <!-- Top Bar -->
+            <div class="w-full flex justify-between items-center glass-panel px-6 py-3 rounded-xl">
+                <button onclick="Game.confirmExit()" class="text-gray-400 hover:text-white transition p-2">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                
+                <div class="flex gap-4 items-center">
+                    <div id="turn-indicator" class="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                        <div id="turn-color" class="w-4 h-4 rounded-full bg-white shadow-[0_0_10px_#fff]"></div>
+                        <span id="turn-text" class="font-bold tracking-wide">OQ NAVBATI</span>
+                    </div>
+                    
+                    <div id="ai-thinking" class="hidden items-center gap-2 text-cyan-400 text-sm font-bold bg-cyan-900/30 px-3 py-1.5 rounded-full border border-cyan-500/30">
+                        <i class="fa-solid fa-microchip"></i> O'ylamoqda <div class="thinking-loader ml-1 scale-75"><span></span><span></span><span></span></div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="Game.undoMove()" id="btn-undo" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed" title="Orqaga">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                    <button onclick="UI.toggleSettingsModal()" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition" title="Sozlamalar">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Play Area -->
+            <div class="flex flex-col lg:flex-row gap-8 items-center lg:items-start justify-center w-full flex-1 min-h-0">
+                
+                <!-- Left Sidebar (Player 1 Info) -->
+                <div class="glass-panel p-4 rounded-xl flex flex-col gap-4 w-full lg:w-64">
+                    <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-black border-2 border-gray-500 flex items-center justify-center shadow-lg">
+                            <i class="fa-solid fa-user text-gray-300"></i>
+                        </div>
+                        <div>
+                            <h3 id="p2-name" class="font-bold text-lg">Qora</h3>
+                            <p id="p2-role" class="text-xs text-gray-400">O'yinchi 2</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400 mb-2">Olingan donalar (<span id="p1-captured-count">0</span>)</p>
+                        <div id="p1-captured" class="flex flex-wrap gap-1 min-h-[40px]"></div>
+                    </div>
+                </div>
+
+                <!-- Board Container -->
+                <div class="flex flex-col items-center justify-center relative">
+                    <!-- Column Coordinates -->
+                    <div class="flex w-full justify-between px-[5%] mb-2 text-xs text-gray-500 font-mono hidden md:flex">
+                        <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <!-- Row Coordinates -->
+                        <div class="flex flex-col h-full justify-between py-[5%] mr-2 text-xs text-gray-500 font-mono hidden md:flex">
+                            <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+                        </div>
+                        
+                        <div id="board-container" class="theme-classic">
+                            <div id="board" class="board">
+                                <!-- Cells generated by JS -->
+                            </div>
+                        </div>
+                        
+                        <div class="w-4 ml-2 hidden md:block"></div> <!-- Spacer for symmetry -->
+                    </div>
+                </div>
+
+                <!-- Right Sidebar (Player 2 Info & History) -->
+                <div class="glass-panel p-4 rounded-xl flex flex-col gap-4 w-full lg:w-64 h-full max-h-[var(--board-size)]">
+                    <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-300 border-2 border-white flex items-center justify-center shadow-lg text-black">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div>
+                            <h3 id="p1-name" class="font-bold text-lg">Oq</h3>
+                            <p id="p1-role" class="text-xs text-gray-400">Siz</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-400 mb-2">Olingan donalar (<span id="p2-captured-count">0</span>)</p>
+                        <div id="p2-captured" class="flex flex-wrap gap-1 min-h-[40px]"></div>
+                    </div>
+                    
+                    <div class="flex-1 flex flex-col min-h-0 border-t border-white/10 pt-3">
+                        <p class="text-sm text-gray-400 mb-2 flex justify-between items-center">
+                            <span>Tarix</span>
+                            <button onclick="Game.exportPGN()" class="text-cyan-400 hover:text-cyan-300 text-xs"><i class="fa-solid fa-download"></i> PGN</button>
+                        </p>
+                        <div id="move-history" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-1 font-mono text-sm text-gray-300">
+                            <!-- Moves generated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= SETTINGS SCREEN ================= -->
+        <div id="screen-settings" class="screen flex-col items-center justify-center w-full max-w-2xl gap-6 z-10">
+            <div class="glass-panel p-8 rounded-2xl w-full shadow-2xl relative">
+                <button onclick="UI.showScreen('screen-menu')" class="absolute top-4 left-4 text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                <h2 class="text-3xl font-bold text-center mb-8"><i class="fa-solid fa-gear mr-2"></i> Sozlamalar</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Audio & Visuals -->
+                    <div class="flex flex-col gap-4">
+                        <h3 class="text-xl font-semibold border-b border-white/10 pb-2 text-cyan-400">Ovoz va Ko'rinish</h3>
+                        
+                        <div class="flex justify-between items-center">
+                            <span><i class="fa-solid fa-music w-6"></i> Ovoz effektlari</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="setting-sound" class="sr-only peer" checked onchange="Settings.save()">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span><i class="fa-solid fa-wand-magic-sparkles w-6"></i> Animatsiyalar</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="setting-anim" class="sr-only peer" checked onchange="Settings.save()">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                            </label>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span><i class="fa-solid fa-moon w-6"></i> Tungi rejim</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="setting-dark" class="sr-only peer" checked onchange="Settings.toggleTheme()">
+                                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Game Preferences -->
+                    <div class="flex flex-col gap-4">
+                        <h3 class="text-xl font-semibold border-b border-white/10 pb-2 text-cyan-400">Taxta Sozlamalari</h3>
+                        
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-2">Taxta rangi</label>
+                            <div class="flex gap-2">
+                                <button onclick="Settings.setTheme('classic')" class="flex-1 py-2 bg-[#8b5a2b] border-2 border-white/20 rounded hover:border-white transition">Klassik</button>
+                                <button onclick="Settings.setTheme('neon')" class="flex-1 py-2 bg-[#0a0a1a] border-2 border-cyan-500/50 rounded hover:border-cyan-400 transition text-cyan-400">Neon</button>
+                                <button onclick="Settings.setTheme('mono')" class="flex-1 py-2 bg-gray-500 border-2 border-white/20 rounded hover:border-white transition">Oq-Qora</button>
+                            </div>
+                        </div>
+
+                        <button onclick="Utils.toggleFullscreen()" class="btn-premium mt-auto py-3 bg-white/10 rounded-xl hover:bg-white/20 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-expand"></i> To'liq ekran
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= STATS SCREEN ================= -->
+        <div id="screen-stats" class="screen flex-col items-center justify-center w-full max-w-3xl gap-6 z-10">
+            <div class="glass-panel p-8 rounded-2xl w-full shadow-2xl relative">
+                <button onclick="UI.showScreen('screen-menu')" class="absolute top-4 left-4 text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                <h2 class="text-3xl font-bold text-center mb-8"><i class="fa-solid fa-chart-simple text-yellow-400 mr-2"></i> Statistika</h2>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white/5 p-4 rounded-xl text-center border border-white/10">
+                        <div class="text-gray-400 text-sm">Jami o'yinlar</div>
+                        <div class="text-3xl font-bold text-white" id="stat-total">0</div>
+                    </div>
+                    <div class="bg-green-500/10 p-4 rounded-xl text-center border border-green-500/20">
+                        <div class="text-green-400 text-sm">G'alabalar</div>
+                        <div class="text-3xl font-bold text-green-400" id="stat-wins">0</div>
+                    </div>
+                    <div class="bg-red-500/10 p-4 rounded-xl text-center border border-red-500/20">
+                        <div class="text-red-400 text-sm">Mag'lubiyatlar</div>
+                        <div class="text-3xl font-bold text-red-400" id="stat-losses">0</div>
+                    </div>
+                    <div class="bg-blue-500/10 p-4 rounded-xl text-center border border-blue-500/20">
+                        <div class="text-blue-400 text-sm">Durrang</div>
+                        <div class="text-3xl font-bold text-blue-400" id="stat-draws">0</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white/5 p-5 rounded-xl border border-white/10">
+                        <h4 class="text-gray-400 mb-4 font-semibold">G'alaba ko'rsatkichi</h4>
+                        <div class="relative w-full h-4 bg-gray-700 rounded-full overflow-hidden">
+                            <div id="stat-win-bar" class="absolute top-0 left-0 h-full bg-gradient-to-r from-green-500 to-green-400" style="width: 0%"></div>
+                        </div>
+                        <div class="text-right mt-1 text-sm font-bold text-green-400" id="stat-win-percent">0%</div>
+                    </div>
+                    
+                    <div class="bg-white/5 p-5 rounded-xl border border-white/10 flex flex-col justify-center gap-2">
+                        <div class="flex justify-between"><span class="text-gray-400">Olingan donalar:</span> <span class="font-bold" id="stat-captured">0</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">O'rtacha yurishlar:</span> <span class="font-bold" id="stat-avg-moves">0</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Eng uzun o'yin:</span> <span class="font-bold" id="stat-longest">0 yurish</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ACHIEVEMENTS SCREEN ================= -->
+        <div id="screen-achievements" class="screen flex-col items-center justify-center w-full max-w-4xl gap-6 z-10">
+            <div class="glass-panel p-8 rounded-2xl w-full shadow-2xl relative">
+                <button onclick="UI.showScreen('screen-menu')" class="absolute top-4 left-4 text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                <h2 class="text-3xl font-bold text-center mb-8"><i class="fa-solid fa-trophy text-orange-400 mr-2"></i> Yutuqlar</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-[60vh] pr-2" id="achievements-container">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ABOUT SCREEN ================= -->
+        <div id="screen-about" class="screen flex-col items-center justify-center w-full max-w-2xl gap-6 z-10">
+            <div class="glass-panel p-10 rounded-2xl w-full shadow-2xl relative text-center">
+                <button onclick="UI.showScreen('screen-menu')" class="absolute top-4 left-4 text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xl"></i>
+                </button>
+                
+                <div class="w-32 h-32 mx-auto rounded-full bg-gradient-to-tr from-cyan-500 to-purple-500 p-1 mb-6 shadow-[0_0_30px_rgba(0,255,204,0.3)]">
+                    <div class="w-full h-full bg-gray-900 rounded-full flex items-center justify-center text-5xl text-white">
+                        <i class="fa-solid fa-code"></i>
+                    </div>
+                </div>
+                
+                <h2 class="text-4xl font-bold mb-2">Ozodbek Sobirjonovich</h2>
+                <p class="text-cyan-400 font-mono mb-6">Frontend O'yin Dasturchisi</p>
+                
+                <div class="bg-white/5 p-6 rounded-xl border border-white/10 mb-8 text-gray-300 leading-relaxed text-lg">
+                    "Ushbu loyiha zamonaviy web texnologiyalari asosida yaratilgan professional shashka o'yini hisoblanadi. Loyihaning asosiy maqsadi foydalanuvchilarga yuqori sifatli, tezkor va zamonaviy o'yin tajribasini taqdim etishdir."
+                </div>
+                
+                <a href="https://t.me/ozodbek_sobirjonovich" target="_blank" class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#0088cc] hover:bg-[#0077b5] text-white rounded-xl font-bold text-lg transition-transform hover:scale-105 shadow-lg shadow-blue-500/30">
+                    <i class="fa-brands fa-telegram text-2xl"></i> @ozodbek_sobirjonovich
+                </a>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="modal-gameover" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center">
+            <div class="glass-panel p-10 rounded-2xl max-w-md w-full text-center transform scale-90 transition-transform duration-300" id="gameover-content">
+                <div class="text-6xl mb-4" id="gameover-icon">🏆</div>
+                <h2 class="text-4xl font-bold mb-2" id="gameover-title">G'alaba!</h2>
+                <p class="text-gray-400 mb-8" id="gameover-desc">Oqlar g'alaba qozondi.</p>
+                
+                <div class="flex gap-4 justify-center">
+                    <button onclick="UI.closeGameOver(); Game.startLocal()" class="btn-premium px-6 py-3 bg-cyan-600 rounded-xl font-bold hover:bg-cyan-500">
+                        <i class="fa-solid fa-rotate-right mr-2"></i> Qayta o'ynash
+                    </button>
+                    <button onclick="UI.closeGameOver(); UI.showScreen('screen-menu')" class="btn-premium px-6 py-3 bg-white/10 border border-white/20 rounded-xl font-bold hover:bg-white/20">
+                        Bosh menyu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, getDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // ================= SYSTEM VARS & FIREBASE INIT =================
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'shashka-pro-uz';
+        let db, auth, currentUser;
+
+        try {
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+                // Mock config for pure local execution if not in specific environment
+                projectId: "mock-project"
+            };
+            if(firebaseConfig.apiKey || firebaseConfig.projectId !== "mock-project") {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+                initAuth();
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                });
+            }
+        } catch(e) {
+            console.warn("Firebase initialization skipped or failed. Online features disabled.", e);
+        }
+
+        // Expose to global for access
+        window.FirebaseDB = {
+            getDb: () => db,
+            getUser: () => currentUser,
+            getAppId: () => appId,
+            getColRef: () => collection(db, 'artifacts', appId, 'public', 'data', 'checkers_rooms')
+        };
+    </script>
+
+    <!-- Main Logic -->
+    <script>
+        // ================= UTILS & AUDIO =================
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let actx;
+
+        const SoundEngine = {
+            init() { if(!actx) actx = new AudioCtx(); },
+            playTone(freq, type, duration, vol) {
+                if(!document.getElementById('setting-sound').checked) return;
+                try {
+                    this.init();
+                    const osc = actx.createOscillator();
+                    const gain = actx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, actx.currentTime);
+                    gain.gain.setValueAtTime(vol, actx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(actx.destination);
+                    osc.start();
+                    osc.stop(actx.currentTime + duration);
+                } catch(e){}
+            },
+            move() { this.playTone(300, 'sine', 0.1, 0.5); },
+            capture() { this.playTone(150, 'square', 0.2, 0.8); },
+            king() { this.playTone(600, 'triangle', 0.4, 0.6); setTimeout(()=>this.playTone(800, 'triangle', 0.4, 0.6), 100); },
+            win() { this.playTone(400, 'sine', 0.3, 0.5); setTimeout(()=>this.playTone(500, 'sine', 0.3, 0.5), 200); setTimeout(()=>this.playTone(600, 'sine', 0.6, 0.5), 400); },
+            error() { this.playTone(100, 'sawtooth', 0.2, 0.5); }
+        };
+
+        const Utils = {
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        UI.toast(`To'liq ekran xatosi: ${err.message}`, 'error');
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            },
+            showToast(msg, type='info') {
+                const container = document.getElementById('toast-container');
+                const t = document.createElement('div');
+                t.className = `toast border-${type === 'error' ? 'red' : type === 'success' ? 'green' : 'cyan'}-500`;
+                t.innerHTML = `<i class="fa-solid fa-${type === 'error' ? 'circle-exclamation text-red-500' : type === 'success' ? 'check text-green-500' : 'info-circle text-cyan-500'}"></i> <span>${msg}</span>`;
+                container.appendChild(t);
+                setTimeout(() => {
+                    t.style.animation = 'captureFade 0.3s forwards';
+                    setTimeout(() => t.remove(), 300);
+                }, 3000);
+            },
+            generateId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
+        };
+
+        // ================= STORAGE =================
+        const Storage = {
+            get(key, def) {
+                const val = localStorage.getItem('shashka_' + key);
+                return val ? JSON.parse(val) : def;
+            },
+            set(key, val) {
+                localStorage.setItem('shashka_' + key, JSON.stringify(val));
+            }
+        };
+
+        // ================= PARTICLES =================
+        const Particles = {
+            canvas: null, ctx: null, list: [], mouse: {x: -1000, y: -1000},
+            init() {
+                this.canvas = document.getElementById('bg-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                window.addEventListener('mousemove', e => { this.mouse.x = e.clientX; this.mouse.y = e.clientY; });
+                for(let i=0; i<50; i++) this.add();
+                this.loop();
+            },
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            },
+            add() {
+                this.list.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    s: Math.random() * 2 + 1,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    c: `rgba(0, 255, 204, ${Math.random() * 0.3})`
+                });
+            },
+            loop() {
+                if(!document.getElementById('setting-anim').checked) {
+                    requestAnimationFrame(() => this.loop());
+                    return;
+                }
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.list.forEach(p => {
+                    p.x += p.vx; p.y += p.vy;
+                    if(p.x < 0 || p.x > this.canvas.width) p.vx *= -1;
+                    if(p.y < 0 || p.y > this.canvas.height) p.vy *= -1;
+                    
+                    let dx = this.mouse.x - p.x; let dy = this.mouse.y - p.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist < 150) {
+                        p.x -= dx * 0.01; p.y -= dy * 0.01;
+                    }
+
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.s, 0, Math.PI*2);
+                    this.ctx.fillStyle = document.documentElement.classList.contains('dark') ? p.c : `rgba(0,0,0,0.1)`;
+                    this.ctx.fill();
+                });
+                requestAnimationFrame(() => this.loop());
+            }
+        };
+
+        // ================= CHECKERS LOGIC (Russian Rules Base) =================
+        const EMPTY = 0, W = 1, B = 2, WK = 3, BK = 4;
+        
+        class ShashkaLogic {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.board = [
+                    [0,B,0,B,0,B,0,B],
+                    [B,0,B,0,B,0,B,0],
+                    [0,B,0,B,0,B,0,B],
+                    [0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0],
+                    [W,0,W,0,W,0,W,0],
+                    [0,W,0,W,0,W,0,W],
+                    [W,0,W,0,W,0,W,0]
+                ];
+                this.turn = W;
+                this.history = [];
+                this.multiJumpPiece = null; // {r, c} if midway through jumps
+                this.winner = null;
+                this.whiteCaptured = 0;
+                this.blackCaptured = 0;
+            }
+
+            isWhite(p) { return p === W || p === WK; }
+            isBlack(p) { return p === B || p === BK; }
+            isKing(p) { return p === WK || p === BK; }
+            isOwnPiece(p) { return this.turn === W ? this.isWhite(p) : this.isBlack(p); }
+            isEnemyPiece(p) { return this.turn === W ? this.isBlack(p) : this.isWhite(p); }
+
+            cloneBoard() { return this.board.map(row => [...row]); }
+
+            getAllValidMoves() {
+                let moves = [];
+                let jumps = [];
+                
+                // If stuck in multi-jump, only allow jumps for that piece
+                if (this.multiJumpPiece) {
+                    const r = this.multiJumpPiece.r;
+                    const c = this.multiJumpPiece.c;
+                    return this.getPieceMoves(r, c).jumps;
+                }
+
+                for(let r=0; r<8; r++) {
+                    for(let c=0; c<8; c++) {
+                        let p = this.board[r][c];
+                        if(p !== EMPTY && this.isOwnPiece(p)) {
+                            let pieceMoves = this.getPieceMoves(r, c);
+                            moves.push(...pieceMoves.moves);
+                            jumps.push(...pieceMoves.jumps);
+                        }
+                    }
+                }
+                // Mandatory capture rule
+                return jumps.length > 0 ? jumps : moves;
+            }
+
+            getPieceMoves(r, c) {
+                let p = this.board[r][c];
+                let moves = [];
+                let jumps = [];
+                let isK = this.isKing(p);
+                
+                const dirs = isK ? [[-1,-1], [-1,1], [1,-1], [1,1]] : 
+                             (this.isWhite(p) ? [[-1,-1], [-1,1]] : [[1,-1], [1,1]]);
+                
+                // Jumps (Russian allows men to jump backwards, standard US doesn't. 
+                // To be professional and standard here, let's implement Men jump ANY direction in Russian Checkers)
+                const jumpDirs = [[-1,-1], [-1,1], [1,-1], [1,1]];
+
+                if (!isK) {
+                    // Man normal move
+                    dirs.forEach(d => {
+                        let nr = r + d[0], nc = c + d[1];
+                        if(this.onBoard(nr, nc) && this.board[nr][nc] === EMPTY) {
+                            moves.push({from: {r,c}, to: {r:nr, c:nc}, jump: null});
+                        }
+                    });
+                    // Man jump
+                    jumpDirs.forEach(d => {
+                        let mr = r + d[0], mc = c + d[1]; // middle
+                        let nr = r + d[0]*2, nc = c + d[1]*2; // landing
+                        if(this.onBoard(nr, nc) && this.isEnemyPiece(this.board[mr][mc]) && this.board[nr][nc] === EMPTY) {
+                            jumps.push({from: {r,c}, to: {r:nr, c:nc}, jump: {r:mr, c:mc}});
+                        }
+                    });
+                } else {
+                    // Flying King logic
+                    dirs.forEach(d => {
+                        let nr = r + d[0], nc = c + d[1];
+                        let foundEnemy = null;
+                        
+                        while(this.onBoard(nr, nc)) {
+                            let target = this.board[nr][nc];
+                            if(target === EMPTY) {
+                                if(!foundEnemy) {
+                                    moves.push({from: {r,c}, to: {r:nr, c:nc}, jump: null});
+                                } else {
+                                    jumps.push({from: {r,c}, to: {r:nr, c:nc}, jump: foundEnemy});
+                                    // Russian rules allow landing anywhere empty after captured piece.
+                                    // We add all empty squares behind the enemy.
+                                }
+                            } else if (this.isOwnPiece(target)) {
+                                break;
+                            } else if (this.isEnemyPiece(target)) {
+                                if(foundEnemy) break; // Cannot jump two pieces in one line
+                                foundEnemy = {r:nr, c:nc};
+                            }
+                            nr += d[0]; nc += d[1];
+                        }
+                    });
+                }
+                return {moves, jumps};
+            }
+
+            onBoard(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
+
+            executeMove(move) {
+                let p = this.board[move.from.r][move.from.c];
+                
+                // Save state for undo
+                let stateStr = JSON.stringify({
+                    board: this.board, turn: this.turn, mj: this.multiJumpPiece,
+                    wc: this.whiteCaptured, bc: this.blackCaptured
+                });
+                
+                // Move piece
+                this.board[move.from.r][move.from.c] = EMPTY;
+                this.board[move.to.r][move.to.c] = p;
+                
+                let captured = false;
+                let promoted = false;
+
+                // Handle Jump
+                if(move.jump) {
+                    this.board[move.jump.r][move.jump.c] = EMPTY;
+                    captured = true;
+                    if(this.turn === W) this.blackCaptured++; else this.whiteCaptured++;
+                }
+
+                // King Promotion
+                if(!this.isKing(p)) {
+                    if((this.turn === W && move.to.r === 0) || (this.turn === B && move.to.r === 7)) {
+                        this.board[move.to.r][move.to.c] = this.turn === W ? WK : BK;
+                        promoted = true;
+                        p = this.board[move.to.r][move.to.c];
+                    }
+                }
+
+                // Check for multi-jump
+                let canJumpAgain = false;
+                if(captured) {
+                    let nextJumps = this.getPieceMoves(move.to.r, move.to.c).jumps;
+                    if(nextJumps.length > 0) {
+                        canJumpAgain = true;
+                        this.multiJumpPiece = {r: move.to.r, c: move.to.c};
+                    }
+                }
+
+                if(!canJumpAgain) {
+                    this.multiJumpPiece = null;
+                    this.turn = this.turn === W ? B : W;
+                }
+
+                this.history.push({ move, state: stateStr, captured, promoted, p1Str: this.getPosStr(move.from), p2Str: this.getPosStr(move.to) });
+
+                this.checkWin();
+                return { captured, promoted, canJumpAgain };
+            }
+
+            getPosStr(pos) {
+                const cols = "ABCDEFGH";
+                return `${cols[pos.c]}${8 - pos.r}`;
+            }
+
+            checkWin() {
+                let wCount = 0, bCount = 0;
+                for(let r=0; r<8; r++) {
+                    for(let c=0; c<8; c++) {
+                        if(this.isWhite(this.board[r][c])) wCount++;
+                        if(this.isBlack(this.board[r][c])) bCount++;
+                    }
+                }
+                if(wCount === 0) this.winner = B;
+                else if(bCount === 0) this.winner = W;
+                else {
+                    let currentMoves = this.getAllValidMoves();
+                    if(currentMoves.length === 0) {
+                        this.winner = this.turn === W ? B : W;
+                    }
+                }
+            }
+
+            undo() {
+                if(this.history.length === 0) return false;
+                let last = this.history.pop();
+                let state = JSON.parse(last.state);
+                this.board = state.board;
+                this.turn = state.turn;
+                this.multiJumpPiece = state.mj;
+                this.whiteCaptured = state.wc;
+                this.blackCaptured = state.bc;
+                this.winner = null;
+                return true;
+            }
+        }
+
+        // ================= AI (Minimax with Alpha-Beta) =================
+        const AI = {
+            async getBestMove(logic, depth) {
+                return new Promise(resolve => {
+                    // Small delay for UI update
+                    setTimeout(() => {
+                        let bestMove = this.minimaxRoot(logic, depth, true);
+                        resolve(bestMove);
+                    }, 50);
+                });
+            },
+
+            minimaxRoot(logic, depth, isMaximizing) {
+                let moves = logic.getAllValidMoves();
+                if(moves.length === 0) return null;
+                if(depth === 1) { // Easy mode - random
+                    return moves[Math.floor(Math.random() * moves.length)];
+                }
+
+                let bestVal = -Infinity;
+                let bestMove = moves[0];
+                let alpha = -Infinity, beta = Infinity;
+
+                // Sort moves slightly (captures first) to improve alpha-beta pruning
+                moves.sort((a,b) => (b.jump ? 1 : 0) - (a.jump ? 1 : 0));
+
+                for(let move of moves) {
+                    // Create hypothetical state
+                    let stateStr = JSON.stringify(logic);
+                    let clone = new ShashkaLogic();
+                    Object.assign(clone, JSON.parse(stateStr));
+                    
+                    let res = clone.executeMove(move);
+                    let val;
+                    if (res.canJumpAgain) {
+                         // Still AI's turn
+                         val = this.minimax(clone, depth, alpha, beta, true);
+                    } else {
+                         val = this.minimax(clone, depth - 1, alpha, beta, false);
+                    }
+
+                    if(val > bestVal) {
+                        bestVal = val;
+                        bestMove = move;
+                    }
+                    alpha = Math.max(alpha, bestVal);
+                }
+                return bestMove;
+            },
+
+            minimax(logic, depth, alpha, beta, isMaximizing) {
+                if(logic.winner !== null) {
+                    return logic.winner === B ? 10000 : -10000; // Black is maximizing for AI
+                }
+                if(depth === 0) {
+                    return this.evaluate(logic);
+                }
+
+                let moves = logic.getAllValidMoves();
+                if(moves.length === 0) return isMaximizing ? -10000 : 10000;
+
+                if(isMaximizing) {
+                    let maxEval = -Infinity;
+                    for(let move of moves) {
+                        let stateStr = JSON.stringify(logic);
+                        let clone = new ShashkaLogic();
+                        Object.assign(clone, JSON.parse(stateStr));
+                        
+                        let res = clone.executeMove(move);
+                        let ev = res.canJumpAgain ? 
+                                 this.minimax(clone, depth, alpha, beta, true) :
+                                 this.minimax(clone, depth - 1, alpha, beta, false);
+                        
+                        maxEval = Math.max(maxEval, ev);
+                        alpha = Math.max(alpha, ev);
+                        if(beta <= alpha) break;
+                    }
+                    return maxEval;
+                } else {
+                    let minEval = Infinity;
+                    for(let move of moves) {
+                        let stateStr = JSON.stringify(logic);
+                        let clone = new ShashkaLogic();
+                        Object.assign(clone, JSON.parse(stateStr));
+                        
+                        let res = clone.executeMove(move);
+                        let ev = res.canJumpAgain ? 
+                                 this.minimax(clone, depth, alpha, beta, false) :
+                                 this.minimax(clone, depth - 1, alpha, beta, true);
+                        
+                        minEval = Math.min(minEval, ev);
+                        beta = Math.min(beta, ev);
+                        if(beta <= alpha) break;
+                    }
+                    return minEval;
+                }
+            },
+
+            evaluate(logic) {
+                let score = 0;
+                for(let r=0; r<8; r++) {
+                    for(let c=0; c<8; c++) {
+                        let p = logic.board[r][c];
+                        if(p === B) score += 10 + r; // advance
+                        else if(p === BK) score += 30;
+                        else if(p === W) score -= 10 + (7-r);
+                        else if(p === WK) score -= 30;
+                        
+                        // Center control bonus
+                        if(p !== EMPTY && r>2 && r<5 && c>2 && c<5) {
+                            score += logic.isBlack(p) ? 2 : -2;
+                        }
+                    }
+                }
+                return score;
+            }
+        };
+
+        // ================= GAME CONTROLLER =================
+        const Game = {
+            logic: new ShashkaLogic(),
+            mode: 'local', // local, ai, online
+            aiLevel: 3,
+            selectedSquare: null,
+            validMovesCache: [],
+            playerColor: W, // in online or AI
+            
+            startLocal() {
+                this.mode = 'local';
+                this.initGame();
+                document.getElementById('p1-name').innerText = "Oq O'yinchi";
+                document.getElementById('p2-name').innerText = "Qora O'yinchi";
+                document.getElementById('p1-role').innerText = "Siz";
+                document.getElementById('p2-role').innerText = "Raqib (Mahalliy)";
+            },
+            
+            startAI(level) {
+                this.mode = 'ai';
+                this.aiLevel = level;
+                this.playerColor = W;
+                this.initGame();
+                UI.showScreen('screen-game');
+                document.getElementById('p1-name').innerText = "Siz";
+                document.getElementById('p2-name').innerText = `Kompyuter (Lvl ${level})`;
+                document.getElementById('p1-role').innerText = "Oq";
+                document.getElementById('p2-role').innerText = "Qora AI";
+            },
+
+            initGame() {
+                this.logic.reset();
+                this.selectedSquare = null;
+                this.updateValidMovesCache();
+                UI.renderBoard();
+                UI.updateStatus();
+                UI.clearHistory();
+                UI.updateCaptured();
+                document.getElementById('modal-gameover').style.display = 'none';
+            },
+
+            updateValidMovesCache() {
+                this.validMovesCache = this.logic.getAllValidMoves();
+            },
+
+            handleSquareClick(r, c) {
+                if (this.logic.winner) return;
+                
+                // Prevent clicking if it's AI turn or not your turn in online
+                if (this.mode === 'ai' && this.logic.turn !== this.playerColor) return;
+                if (this.mode === 'online' && this.logic.turn !== this.playerColor) return;
+
+                let p = this.logic.board[r][c];
+                
+                // If a piece is selected, check if clicked square is a valid move
+                if (this.selectedSquare) {
+                    let move = this.validMovesCache.find(m => 
+                        m.from.r === this.selectedSquare.r && 
+                        m.from.c === this.selectedSquare.c && 
+                        m.to.r === r && 
+                        m.to.c === c
+                    );
+                    
+                    if (move) {
+                        this.makeMove(move);
+                        return;
+                    }
+                }
+
+                // Select own piece if it has valid moves
+                if (p !== EMPTY && this.logic.isOwnPiece(p)) {
+                    let pieceMoves = this.validMovesCache.filter(m => m.from.r === r && m.from.c === c);
+                    if (pieceMoves.length > 0) {
+                        this.selectedSquare = {r, c};
+                        SoundEngine.move();
+                        UI.renderBoard(); // refresh highlights
+                        return;
+                    }
+                }
+                
+                // Deselect on invalid click
+                this.selectedSquare = null;
+                UI.renderBoard();
+            },
+
+            async makeMove(move) {
+                this.selectedSquare = null;
+                let res = this.logic.executeMove(move);
+                
+                if(res.captured) SoundEngine.capture();
+                else SoundEngine.move();
+                if(res.promoted) SoundEngine.king();
+
+                UI.addHistory(move, res);
+                this.updateValidMovesCache();
+                UI.renderBoard();
+                UI.updateStatus();
+                UI.updateCaptured();
+
+                if(this.mode === 'online') {
+                    Online.sendMove(move);
+                }
+
+                if(this.logic.winner) {
+                    this.handleWin();
+                    return;
+                }
+
+                if(this.mode === 'ai' && this.logic.turn !== this.playerColor) {
+                    document.getElementById('ai-thinking').style.display = 'flex';
+                    let aiMove = await AI.getBestMove(this.logic, this.aiLevel);
+                    document.getElementById('ai-thinking').style.display = 'none';
+                    if(aiMove) {
+                        this.makeMove(aiMove);
+                    }
+                }
+            },
+
+            handleWin() {
+                SoundEngine.win();
+                let winnerName = this.logic.winner === W ? "Oqlar" : "Qoralar";
+                document.getElementById('gameover-title').innerText = "G'alaba!";
+                document.getElementById('gameover-desc').innerText = `${winnerName} g'alaba qozondi.`;
+                document.getElementById('modal-gameover').style.display = 'flex';
+                
+                // Update stats
+                Stats.addGame(this.logic.winner === this.playerColor ? 'win' : 'loss', this.logic.history.length);
+                Achievements.check();
+            },
+
+            undoMove() {
+                if(this.mode === 'online') {
+                    Utils.showToast('Onlayn o\'yinda orqaga qaytish mumkin emas', 'error');
+                    return;
+                }
+                if(this.logic.undo()) {
+                    if(this.mode === 'ai' && this.logic.turn !== this.playerColor) {
+                        this.logic.undo(); // Undo AI move too
+                    }
+                    this.selectedSquare = null;
+                    this.updateValidMovesCache();
+                    UI.renderBoard();
+                    UI.updateStatus();
+                    UI.updateCaptured();
+                    UI.removeLastHistory();
+                }
+            },
+
+            exportPGN() {
+                if(this.logic.history.length === 0) return;
+                let moves = this.logic.history.map((h, i) => `${i+1}. ${h.p1Str}-${h.p2Str}`).join('\n');
+                let blob = new Blob([moves], {type: "text/plain;charset=utf-8"});
+                let url = URL.createObjectURL(blob);
+                let a = document.createElement("a");
+                a.href = url;
+                a.download = `Shashka_${new Date().getTime()}.pgn`;
+                a.click();
+            },
+
+            confirmExit() {
+                if(confirm("Haqiqatan ham chiqishni xohlaysizmi? O'yin saqlanmaydi.")) {
+                    if(this.mode === 'online') Online.leaveRoom();
+                    UI.showScreen('screen-menu');
+                }
+            }
+        };
+
+        // ================= ONLINE (Firebase) =================
+        const Online = {
+            roomId: null,
+            unsubscribe: null,
+            
+            async createRoom() {
+                if(!window.FirebaseDB || !window.FirebaseDB.getDb()) return Utils.showToast("Server ulanmagan", "error");
+                
+                const name = document.getElementById('player-name').value || "O'yinchi";
+                const db = window.FirebaseDB.getDb();
+                const colRef = window.FirebaseDB.getColRef();
+                
+                // Import from globals for single file without module exports
+                const { doc, setDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+                
+                this.roomId = Utils.generateId();
+                const roomRef = doc(colRef, this.roomId);
+                
+                await setDoc(roomRef, {
+                    host: name,
+                    guest: null,
+                    state: 'waiting',
+                    board: null,
+                    lastMove: null,
+                    turn: W,
+                    createdAt: new Date()
+                });
+
+                Game.playerColor = W;
+                document.getElementById('online-auth-section').style.display = 'none';
+                document.getElementById('online-waiting-section').style.display = 'flex';
+                document.getElementById('display-room-id').innerText = this.roomId;
+
+                this.listenRoom(roomRef);
+            },
+
+            async joinRoom() {
+                if(!window.FirebaseDB || !window.FirebaseDB.getDb()) return Utils.showToast("Server ulanmagan", "error");
+                
+                let rId = document.getElementById('room-id-input').value.trim().toUpperCase();
+                if(!rId) return Utils.showToast("ID kiriting", "error");
+
+                const name = document.getElementById('player-name').value || "Raqib";
+                const db = window.FirebaseDB.getDb();
+                const colRef = window.FirebaseDB.getColRef();
+                const { doc, getDoc, updateDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+                
+                const roomRef = doc(colRef, rId);
+                const docSnap = await getDoc(roomRef);
+                
+                if(docSnap.exists() && docSnap.data().state === 'waiting') {
+                    this.roomId = rId;
+                    Game.playerColor = B;
+                    await updateDoc(roomRef, {
+                        guest: name,
+                        state: 'playing'
+                    });
+                    this.listenRoom(roomRef);
+                } else {
+                    Utils.showToast("Xona topilmadi yoki to'la", "error");
+                }
+            },
+
+            async listenRoom(roomRef) {
+                const { onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+                this.unsubscribe = onSnapshot(roomRef, (docSnap) => {
+                    if(!docSnap.exists()) return;
+                    const data = docSnap.data();
+                    
+                    if(data.state === 'playing' && Game.mode !== 'online') {
+                        // Game started
+                        Game.mode = 'online';
+                        UI.showScreen('screen-game');
+                        Game.initGame();
+                        document.getElementById('p1-name').innerText = Game.playerColor === W ? data.host : data.guest;
+                        document.getElementById('p2-name').innerText = Game.playerColor === W ? data.guest : data.host;
+                        document.getElementById('p1-role').innerText = "Siz (" + (Game.playerColor === W ? "Oq" : "Qora") + ")";
+                        document.getElementById('btn-undo').style.display = 'none';
+                    }
+
+                    if(data.lastMove && Game.mode === 'online' && data.turn === Game.playerColor) {
+                        // Receive move
+                        let move = JSON.parse(data.lastMove);
+                        Game.makeMove(move);
+                    }
+                });
+            },
+
+            async sendMove(move) {
+                if(!this.roomId || Game.mode !== 'online') return;
+                const db = window.FirebaseDB.getDb();
+                const colRef = window.FirebaseDB.getColRef();
+                const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+                
+                const roomRef = doc(colRef, this.roomId);
+                await updateDoc(roomRef, {
+                    lastMove: JSON.stringify(move),
+                    turn: Game.logic.turn
+                });
+            },
+
+            copyInviteLink() {
+                Utils.showToast(`Xona ID: ${this.roomId} nusxalandi!`, 'success');
+                navigator.clipboard.writeText(this.roomId);
+            },
+
+            cancelMatchmaking() {
+                document.getElementById('online-auth-section').style.display = 'flex';
+                document.getElementById('online-waiting-section').style.display = 'none';
+                if(this.unsubscribe) this.unsubscribe();
+                this.roomId = null;
+            },
+
+            leaveRoom() {
+                if(this.unsubscribe) this.unsubscribe();
+                this.roomId = null;
+                document.getElementById('online-auth-section').style.display = 'flex';
+                document.getElementById('online-waiting-section').style.display = 'none';
+            }
+        };
+
+        // ================= STATS & ACHIEVEMENTS =================
+        const Stats = {
+            data: Storage.get('stats', { total:0, wins:0, losses:0, draws:0, captured:0, moves:0, maxMoves:0 }),
+            addGame(res, moves) {
+                this.data.total++;
+                if(res === 'win') this.data.wins++;
+                else if(res === 'loss') this.data.losses++;
+                else this.data.draws++;
+                
+                this.data.moves += moves;
+                if(moves > this.data.maxMoves) this.data.maxMoves = moves;
+                this.data.captured += Game.logic.history.filter(h=>h.captured).length;
+                
+                Storage.set('stats', this.data);
+            }
+        };
+
+        const Achievements = {
+            list: [
+                { id: 'first_win', icon: 'fa-medal', title: 'Birinchi G\'alaba', desc: 'O\'yinda ilk g\'alabani qozoning' },
+                { id: 'win_10', icon: 'fa-crown', title: '10 G\'alaba', desc: 'Jami 10 ta g\'alaba qozoning' },
+                { id: 'first_king', icon: 'fa-chess-queen', title: 'Damka', desc: 'Birinchi damkani oling' },
+                { id: 'quick_win', icon: 'fa-bolt', title: 'Tezkor', desc: '20 yurishdan kam o\'yinda yuting' }
+            ],
+            unlocked: Storage.get('achieves', []),
+            check() {
+                let s = Stats.data;
+                this.unlock('first_win', s.wins > 0);
+                this.unlock('win_10', s.wins >= 10);
+                this.unlock('first_king', Game.logic.history.some(h=>h.promoted));
+                this.unlock('quick_win', s.wins > 0 && Game.logic.history.length < 20);
+            },
+            unlock(id, cond) {
+                if(cond && !this.unlocked.includes(id)) {
+                    this.unlocked.push(id);
+                    Storage.set('achieves', this.unlocked);
+                    Utils.showToast(`Yangi Yutuq: ${this.list.find(a=>a.id===id).title}!`, 'success');
+                }
+            }
+        };
+
+        // ================= UI CONTROLLER =================
+        const UI = {
+            init() {
+                Particles.init();
+                this.loadSettings();
+                Settings.applyTheme();
+                
+                // Add event delegation for board
+                document.getElementById('board').addEventListener('click', (e) => {
+                    let cell = e.target.closest('.cell');
+                    if(cell) {
+                        let r = parseInt(cell.dataset.r);
+                        let c = parseInt(cell.dataset.c);
+                        Game.handleSquareClick(r, c);
+                    }
+                });
+            },
+
+            showScreen(id) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+            },
+
+            renderBoard() {
+                const boardEl = document.getElementById('board');
+                boardEl.innerHTML = '';
+
+                // Last move highlight
+                let lastMove = Game.logic.history.length > 0 ? Game.logic.history[Game.logic.history.length-1].move : null;
+
+                for(let r=0; r<8; r++) {
+                    for(let c=0; c<8; c++) {
+                        let isDark = (r + c) % 2 === 1;
+                        let cell = document.createElement('div');
+                        cell.className = `cell ${isDark ? 'cell-dark' : 'cell-light'}`;
+                        cell.dataset.r = r;
+                        cell.dataset.c = c;
+
+                        // Last move
+                        if(lastMove && ((lastMove.from.r === r && lastMove.from.c === c) || (lastMove.to.r === r && lastMove.to.c === c))) {
+                            let lm = document.createElement('div');
+                            lm.className = 'last-move';
+                            cell.appendChild(lm);
+                        }
+
+                        // Piece
+                        let p = Game.logic.board[r][c];
+                        if(p !== EMPTY) {
+                            let piece = document.createElement('div');
+                            piece.className = `piece ${Game.logic.isWhite(p) ? 'piece-white' : 'piece-black'} ${Game.logic.isKing(p) ? 'king' : ''}`;
+                            
+                            if(Game.selectedSquare && Game.selectedSquare.r === r && Game.selectedSquare.c === c) {
+                                piece.classList.add('selected');
+                            }
+
+                            let crown = document.createElement('i');
+                            crown.className = "fa-solid fa-crown crown";
+                            piece.appendChild(crown);
+                            
+                            cell.appendChild(piece);
+                        }
+
+                        // Highlights
+                        if (Game.selectedSquare) {
+                            let moves = Game.validMovesCache.filter(m => m.from.r === Game.selectedSquare.r && m.from.c === Game.selectedSquare.c && m.to.r === r && m.to.c === c);
+                            if (moves.length > 0) {
+                                let hl = document.createElement('div');
+                                hl.className = `highlight-move ${moves[0].jump ? 'highlight-capture' : ''}`;
+                                cell.appendChild(hl);
+                            }
+                        }
+
+                        boardEl.appendChild(cell);
+                    }
+                }
+                
+                // Flip board if player is black
+                if (Game.playerColor === B) {
+                    boardEl.style.transform = "rotate(180deg)";
+                    document.querySelectorAll('.piece').forEach(p => p.style.transform = "rotate(-180deg)");
+                } else {
+                    boardEl.style.transform = "none";
+                }
+            },
+
+            updateStatus() {
+                const turnColor = document.getElementById('turn-color');
+                const turnText = document.getElementById('turn-text');
+                
+                if(Game.logic.turn === W) {
+                    turnColor.className = "w-4 h-4 rounded-full bg-white shadow-[0_0_10px_#fff]";
+                    turnText.innerText = "OQ NAVBATI";
+                    turnText.className = "font-bold tracking-wide text-white";
+                } else {
+                    turnColor.className = "w-4 h-4 rounded-full bg-black shadow-[0_0_10px_#000] border border-gray-600";
+                    turnText.innerText = "QORA NAVBATI";
+                    turnText.className = "font-bold tracking-wide text-gray-400";
+                }
+            },
+
+            updateCaptured() {
+                document.getElementById('p1-captured-count').innerText = Game.logic.whiteCaptured;
+                document.getElementById('p2-captured-count').innerText = Game.logic.blackCaptured;
+                
+                const buildCaps = (count, colorClass) => {
+                    let html = '';
+                    for(let i=0; i<count; i++) html += `<div class="w-4 h-4 rounded-full ${colorClass} border border-gray-500 shadow-sm"></div>`;
+                    return html;
+                };
+                
+                document.getElementById('p1-captured').innerHTML = buildCaps(Game.logic.whiteCaptured, 'bg-black');
+                document.getElementById('p2-captured').innerHTML = buildCaps(Game.logic.blackCaptured, 'bg-white');
+            },
+
+            addHistory(move, res) {
+                const hist = document.getElementById('move-history');
+                let color = Game.logic.turn === W ? "text-gray-400" : "text-white"; // Turn flipped
+                let icon = res.captured ? '<i class="fa-solid fa-xmark text-red-500 text-[10px]"></i>' : '-';
+                
+                let num = Math.ceil(Game.logic.history.length / 2);
+                let isWhite = Game.logic.history.length % 2 === 1;
+
+                let row;
+                if (isWhite) {
+                    row = document.createElement('div');
+                    row.className = "flex justify-between items-center py-1 border-b border-white/5";
+                    row.innerHTML = `<span class="w-6 text-gray-600">${num}.</span> <span class="flex-1 ${color}">${Game.logic.getPosStr(move.from)}${icon}${Game.logic.getPosStr(move.to)}</span> <span class="flex-1 text-right text-gray-500" id="hist-b-${num}">...</span>`;
+                    hist.appendChild(row);
+                } else {
+                    row = document.getElementById(`hist-b-${num}`);
+                    if(row) {
+                        row.className = `flex-1 text-right ${color}`;
+                        row.innerHTML = `${Game.logic.getPosStr(move.from)}${icon}${Game.logic.getPosStr(move.to)}`;
+                    }
+                }
+                hist.scrollTop = hist.scrollHeight;
+            },
+
+            clearHistory() {
+                document.getElementById('move-history').innerHTML = '';
+            },
+            
+            removeLastHistory() {
+                const hist = document.getElementById('move-history');
+                if(Game.logic.history.length % 2 === 0) {
+                    hist.lastChild.remove();
+                } else {
+                    let num = Math.ceil((Game.logic.history.length+1) / 2);
+                    let row = document.getElementById(`hist-b-${num}`);
+                    if(row) {
+                        row.className = "flex-1 text-right text-gray-500";
+                        row.innerHTML = "...";
+                    }
+                }
+            },
+
+            closeGameOver() {
+                document.getElementById('modal-gameover').style.display = 'none';
+            },
+
+            loadSettings() {
+                let s = Storage.get('settings', { sound: true, anim: true, dark: true, theme: 'classic' });
+                document.getElementById('setting-sound').checked = s.sound;
+                document.getElementById('setting-anim').checked = s.anim;
+                document.getElementById('setting-dark').checked = s.dark;
+                Settings.setTheme(s.theme, false);
+            },
+
+            renderStats() {
+                let s = Stats.data;
+                document.getElementById('stat-total').innerText = s.total;
+                document.getElementById('stat-wins').innerText = s.wins;
+                document.getElementById('stat-losses').innerText = s.losses;
+                document.getElementById('stat-draws').innerText = s.draws;
+                
+                let pct = s.total > 0 ? Math.round((s.wins / s.total) * 100) : 0;
+                document.getElementById('stat-win-bar').style.width = pct + '%';
+                document.getElementById('stat-win-percent').innerText = pct + '%';
+                
+                document.getElementById('stat-captured').innerText = s.captured;
+                document.getElementById('stat-avg-moves').innerText = s.total > 0 ? Math.round(s.moves / s.total) : 0;
+                document.getElementById('stat-longest').innerText = s.maxMoves + ' yurish';
+            },
+
+            renderAchievements() {
+                const c = document.getElementById('achievements-container');
+                c.innerHTML = '';
+                Achievements.list.forEach(a => {
+                    let unlocked = Achievements.unlocked.includes(a.id);
+                    let html = `
+                        <div class="glass-panel p-4 rounded-xl border ${unlocked ? 'border-orange-500/50' : 'border-white/10 opacity-50'} flex gap-4 items-center transition">
+                            <div class="w-12 h-12 rounded-full ${unlocked ? 'bg-orange-500/20 text-orange-400 shadow-[0_0_15px_rgba(255,165,0,0.5)]' : 'bg-white/5 text-gray-500'} flex items-center justify-center text-xl">
+                                <i class="fa-solid ${a.icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold ${unlocked ? 'text-white' : 'text-gray-400'}">${a.title}</h4>
+                                <p class="text-xs text-gray-500">${a.desc}</p>
+                            </div>
+                        </div>
+                    `;
+                    c.innerHTML += html;
+                });
+            }
+        };
+
+        const Settings = {
+            save() {
+                Storage.set('settings', {
+                    sound: document.getElementById('setting-sound').checked,
+                    anim: document.getElementById('setting-anim').checked,
+                    dark: document.getElementById('setting-dark').checked,
+                    theme: document.getElementById('board-container').className.replace('theme-', '') || 'classic'
+                });
+                this.applyTheme();
+            },
+            toggleTheme() {
+                this.save();
+            },
+            setTheme(name, save=true) {
+                const bc = document.getElementById('board-container');
+                bc.className = `theme-${name}`;
+                if(save) this.save();
+            },
+            applyTheme() {
+                let dark = document.getElementById('setting-dark').checked;
+                if(dark) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }
+        };
+
+        // Bootstrap App
+        window.onload = () => {
+            UI.init();
+        };
+
+    </script>
+</body>
+</html>
